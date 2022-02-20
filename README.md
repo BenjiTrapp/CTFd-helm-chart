@@ -1,4 +1,5 @@
 [![Release Helm Chart](https://github.com/BenjiTrapp/CTFd-helm-chart/actions/workflows/blank.yml/badge.svg)](https://github.com/BenjiTrapp/CTFd-helm-chart/actions/workflows/blank.yml)
+[![Checkov](https://github.com/BenjiTrapp/CTFd-helm-chart/actions/workflows/checkov.yml/badge.svg)](https://github.com/BenjiTrapp/CTFd-helm-chart/actions/workflows/checkov.yml)
 
 <br/>
 <div id="ctfd-logo" align="center">
