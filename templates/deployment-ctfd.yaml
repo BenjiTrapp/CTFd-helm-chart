@@ -1,0 +1,114 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ include "ctfd.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}
+    helm.sh/chart: {{ include "ctfd.chart" . }}
+    app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: {{ include "ctfd.name" . }}
+    app.kubernetes.io/component: {{ include "ctfd.name" . }}
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount | default "1" }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ctfd.name" . }}
+      app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ctfd.name" . }}
+        app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    spec:
+      containers:
+        - name: nginx
+          image: "image-registry.openshift-image-registry.svc:5000/{{ .Values.namespace }}/nginx-upstream"
+          imagePullPolicy: Always
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/nginx
+              name: {{ include "ctfd.name" . }}-nginx-config
+            - mountPath: /etc/tls/private
+              name: {{ include "ctfd.name" . }}-nginx-tls
+        - name: {{ .Chart.Name }}
+          image: "image-registry.openshift-image-registry.svc:5000/{{ .Values.namespace }}/{{ include "ctfd.name" . }}-upstream:{{ .Values.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- range $name, $value := .Values.env.open }}
+            {{- if not (empty $value) }}
+          - name: {{ $name | quote }}
+            value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.persistence.uploads.enabled }}
+          - name: UPLOAD_FOLDER
+            value: /var/uploads
+          {{- end }}
+          {{- if .Values.env.existingSecret }}
+            {{- $secret_name := .Values.env.existingSecret }}
+            {{- range $name, $key := .Values.env.existingSecretMappings }}
+              {{- if not ( empty $key) }}
+          - name: {{ $name | quote }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ $secret_name | quote }}
+                key: {{ $key | quote }}
+              {{- end }}
+            {{- end }}
+          {{- else }}
+            {{- $secret_name := include "ctfd.name" . }}
+            {{- range $name, $value := .Values.env.secret }}
+              {{- if not ( empty $value) }}
+          - name: {{ $name | quote }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ $secret_name }}
+                key: {{ $name | quote }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.ctfdPort }}
+              name: ctfd
+              protocol: TCP
+          volumeMounts:
+          {{- if .Values.persistence.uploads.enabled }}
+          - mountPath: /var/uploads
+            name: uploads
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: ctfd
+{{ toYaml .Values.probes.liveness | indent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: ctfd
+{{ toYaml .Values.probes.readiness | indent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - configMap:
+          name: {{ include "ctfd.name" . }}-nginx-config
+        name: {{ include "ctfd.name" . }}-nginx-config
+      - name: {{ include "ctfd.name" . }}-nginx-tls
+        secret:
+          defaultMode: 420
+          secretName: {{ include "ctfd.name" . }}-nginx-tls      
+      - name: uploads
+    {{- if .Values.persistence.uploads.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.uploads.existingClaim | default (include "ctfd.name" .) }}
+    {{- else }}
+        emptyDir: {}
+    {{- end }}

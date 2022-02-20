@@ -1,0 +1,64 @@
+# Default values for ctfd.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+namespace: my-cool-namespace
+replicaCount: 1
+
+image:
+  tag: 3.4.1-release
+  pullPolicy: IfNotPresent
+
+ctfdPort: 8000
+clusterURL: my-fancy-cluster
+
+nginxVersion: 1.21.3-alpine
+
+redisVersion: 6.2.4-alpine
+pullImage: true
+
+env:
+  open:
+    # Amount of CTFd workers
+    WORKERS: 1
+    # SQL Database URI. Example: mysql+pymysql://root:ctfd@db/ctfd
+    DATABASE_URL: mysql+pymysql://ctfd:ctfd@ctf-mysql:3306/ctfd
+    # Redis URI. Example: redis://cache:6379
+    REDIS_URL: redis://ctfd-redis:6379
+  secret:
+    # SQL Database URI. Example: mysql+pymysql://root:ctfd@db/ctfd
+    DATABASE_URL: mysql+pymysql://ctfd:ctfd@ctfd-mysql:3306/ctfd
+    # Redis URI. Example: redis://cache:6379
+    REDIS_URL: redis://ctfd-redis:6379
+  existingSecret:
+  # Stores Environment Variable to secret key name mappings
+  existingSecretMappings:
+    DATABASE_URL: mysql+pymysql://ctfd:ctfd@ctfd-mysql:3306/ctfd
+    REDIS_URL: redis://ctfd-redis:6379
+
+persistence:
+  uploads:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+probes:
+  liveness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+
+resources: 
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

@@ -1,0 +1,41 @@
+
+{{- if and .Values.persistence.uploads.enabled (not .Values.persistence.uploads.existingClaim) -}}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "ctfd.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}
+    helm.sh/chart: {{ include "ctfd.chart" . }}
+    app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.persistence.uploads.labels }}
+{{ toYaml .Values.persistence.labels | indent 4 }}
+{{- end }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.uploads.size | default "1Gi" | quote }}
+{{- end }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "ctfd.name" . }}-mysql
+  finalizers:
+    - kubernetes.io/pvc-protection
+  labels:
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}-mysql
+    helm.sh/chart: {{ include "ctfd.chart" . }}
+    app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---  

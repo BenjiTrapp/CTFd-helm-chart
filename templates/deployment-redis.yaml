@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/part-of: {{ include "ctfd.name" . }}
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}-redis
+    helm.sh/chart: {{ include "ctfd.chart" . }}
+    app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  name: {{ include "ctfd.name" . }}-redis
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ctfd.name" . }}-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ctfd.name" . }}-redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: {{ include "ctfd.name" . }}-redis
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/part-of: {{ include "ctfd.name" . }}
+              topologyKey: kubernetes.io/hostname
+            weight: 5
+      containers:
+      - name: redis
+        args:
+        - --save
+        - ""
+        - --appendonly
+        - "no"
+        image: "image-registry.openshift-image-registry.svc:5000/{{ .Values.namespace }}/redis-upstream:{{ .Values.redisVersion | default "latest" }}"
+        imagePullPolicy: Always
+        
+        resources:
+          limits:
+            cpu: 256m
+            memory: 512Mi
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+      serviceAccountName: {{ include "ctfd.name" . }}-redis
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/part-of: {{ include "ctfd.name" . }}
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: {{ include "ctfd.name" . }}-redis
+    helm.sh/chart: {{ include "ctfd.chart" . }}
+    app.kubernetes.io/instance: {{ include "ctfd.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  name: {{ include "ctfd.name" . }}-redis
+  namespace: {{ .Values.namespace }}
+imagePullSecrets:
+  - name: openpaas.eu-central-1.aws.artifactory

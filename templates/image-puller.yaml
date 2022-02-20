@@ -1,0 +1,58 @@
+
+{{- if .Values.pullImage -}}
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: {{ include "ctfd.name" . }}-upstream
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: {{ .Values.image.tag }}
+      annotations: null
+      from:
+        kind: DockerImage
+        name: ctfd/ctfd:{{ .Values.image.tag }}
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local
+---        
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: redis-upstream
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: {{ .Values.redisVersion | default "latest" }}
+      annotations: null
+      from:
+        kind: DockerImage
+        name: {{ .Values.image.reository | default "redis" }}:{{ .Values.redisVersion | default "latest" }}
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local   
+---     
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: nginx-upstream
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: {{ .Values.nginxVersion }}
+      annotations: null
+      from:
+        kind: DockerImage
+        name: nginx:{{ .Values.nginxVersion }}
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local
+---        
+{{- end -}}
