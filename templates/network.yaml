@@ -57,6 +57,7 @@ spec:
     app.kubernetes.io/name: {{ include "ctfd.name" . }}
     app.kubernetes.io/instance: {{ include "ctfd.name" . }}
 ---
+{{- if not ingress }}
 kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
@@ -79,6 +80,7 @@ spec:
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
+{{- end }}
 ---
 kind: ConfigMap
 apiVersion: v1
